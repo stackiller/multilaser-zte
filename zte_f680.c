@@ -12,11 +12,9 @@
 
 #include <poll.h>
 
+#define Null NULL
 #define MSG_MX_SIZE 2000000 // max response body size: 2MB
 #define PTR_ARRAY_SIZE(array) (sizeof(array) / 8)
-
-/* Anotações:
-  Obter o Mac, Nome e Senha das Redes e armazenar num DB, tudo em C */ 
 
 char *REQ_LOGIN =
 "POST / HTTP/1.1\n"
@@ -78,7 +76,7 @@ split(char *str, char ch1, char ch2)
   }
 
   free(splited);
-  return NULL;
+  return Null;
 }
 
 /* Get validation token of form */
@@ -86,8 +84,8 @@ char*
 Get_formLoginToken(char *msg) {
   char *token, *token2;
 
-  if((token = strstr(msg, "Frm_Loginchecktoken")) == NULL) {
-    return NULL;
+  if((token = strstr(msg, "Frm_Loginchecktoken")) == Null) {
+    return Null;
   }
   
   token = split(token, ',' , ')');
@@ -103,8 +101,8 @@ char*
 Get_loginToken(char *msg) {
   char *token, *token2;
 
-  if((token = strstr(msg, "Frm_Logintoken")) == NULL) {
-    return NULL;
+  if((token = strstr(msg, "Frm_Logintoken")) == Null) {
+    return Null;
   }
 
   token = split(token, ',' , ')'); // erro
@@ -120,8 +118,8 @@ char*
 Get_SID(char *msg) {
   char *token = strstr(msg, "Set-Cookie: SID");
 
-  if((token = strstr(msg, "Set-Cookie: SID")) == NULL) {
-    return NULL;
+  if((token = strstr(msg, "Set-Cookie: SID")) == Null) {
+    return Null;
   }
 
   char *token2 = split(token, '=', ';');
@@ -149,8 +147,6 @@ Get_WifiName(char *host, char *sid) {
 
   return token;
 }
-
-#define Null NULL;
 
 char*
 Send_request(char *host, char *msg) {
@@ -208,8 +204,8 @@ run(char* host)
   /* Send login request */
   buffer = Send_request(host, request[1]);
 
-  if(buffer == NULL) {
-    printf("run: buffer null\n");
+  if(buffer == Null) {
+    printf("run: buffer Null\n");
     return 0;
   }
 
@@ -218,7 +214,7 @@ run(char* host)
     Get_formLoginToken(buffer),
   };
 
-  if(tokens[0] == NULL || tokens[1] == NULL) {
+  if(tokens[0] == Null || tokens[1] == Null) {
     return 0;
   }
 
@@ -231,15 +227,15 @@ run(char* host)
 
   buffer = Send_request(host, request[0]);
 
-  if(buffer == NULL) {
-    printf("run: buffer is null\n");
+  if(buffer == Null) {
+    printf("run: buffer is Null\n");
     return 0;
   }
 
   /* Get SID */
   sid = Get_SID(buffer);
 
-  if(sid == NULL) {
+  if(sid == Null) {
     return 0;
   }
 
@@ -254,13 +250,22 @@ run(char* host)
   return 0;
 }
 
+
 int
 main(int argc, char **argv)
 {
-  if(argc < 2) {
-    printf("%s host\n", argv[0]);
+  if(argc < 3 || argc > 3) {
+    printf(
+      "run:\n%s <host> -<flags>\n\n"
+      "flags:\n"
+      "S ( = set  ) : use this flag if you want to read the flgas (except M) as definitions and not as getters.\n"
+      "M ( = mac  ) : get router mac address.\n"
+      "N ( = name ) : wireless name.\n"
+      "P ( = pass ) : wireless password.\n"
+      ,argv[0]
+    );
     return 0;
   }
 
-  run(argv[1]);
+  run(argv[2]);
 }
