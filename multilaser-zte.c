@@ -101,11 +101,10 @@ char*
 Get_loginToken(char *msg) {
   char *token, *token2;
 
-  if((token = strstr(msg, "Frm_Logintoken")) == Null) {
+  if((token = strstr(msg, "Frm_Logintoken")) == Null)
     return Null;
-  }
 
-  token = split(token, ',' , ')'); // erro
+  token = split(token, ',' , ')');
   token2 = split(token, '"' , '"');
 
   free(token);
@@ -118,9 +117,8 @@ char*
 Get_SID(char *msg) {
   char *token = strstr(msg, "Set-Cookie: SID");
 
-  if((token = strstr(msg, "Set-Cookie: SID")) == Null) {
+  if((token = strstr(msg, "Set-Cookie: SID")) == Null)
     return Null;
-  }
 
   char *token2 = split(token, '=', ';');
 
@@ -242,7 +240,7 @@ run(char* host)
   wname = Get_WifiName(host, sid);
   
   printf("HOST: %s\n", host);
-  printf("WIFI: %s\n\n", wname);    
+  printf("WIFI: %s\n\n", wname);
 
   free(buffer); free(sid); free(wname);
   free(tokens[0]); free(tokens[1]);
