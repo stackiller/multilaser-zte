@@ -392,7 +392,7 @@ Get_flags(char *s_flags) {
 
 int
 main(int argc, char **argv) {
-  if (argc < 3 || argc > 3 || strlen(argv[2]) > 3 ) {
+  if (argc < 3 || argc > 3 || strlen(argv[2]) > 2 ) {
     usage(argv[0]);
     return 0;
   }
