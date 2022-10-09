@@ -55,9 +55,11 @@ struct sockaddr_in dest;
 char flags[]  = { 'M', 'N' };
 int c_flags[] = {  0,   0  };
 
+char *HOST;
+
 /* Prototypes  */
 int run(char*);
-int set_Addr(char*);
+int set_Addr();
 
 void free_bylist(void**);
 void memset_bylist(void**, int**);
@@ -68,12 +70,11 @@ char* Get_loginToken(char*);
 char* Get_formLoginToken(char*);
 
 char* Get_SID(char*);
-char* Get_Wifiname(char*, char*);
-char* Get_Mac(char*, char*);
-char* Get_Pass(char*, char*);
+char* Get_Wifiname(char*);
+char* Get_Mac(char*);
 
-char* Send_request(char *);
-char* Login_request(char*);
+char* Send_request();
+char* Login_request();
 
 void usage(char*);
 
@@ -83,13 +84,16 @@ run(char* addr) {
   int rc;
   char *buffer, *SID;
 
-  if ((rc = set_Addr(addr)) < 0) {
+  HOST = (char*) calloc(20, 1);
+  strcpy(HOST, addr);
+
+  if ((rc = set_Addr()) < 0) {
     printf("run: fail on create socket.\n");
     return -1;
   }
 
   /* login request */
-  buffer = Login_request(addr);
+  buffer = Login_request();
 
   if(buffer == Null) {
     printf("run: buffer is Null.\n");
@@ -99,9 +103,9 @@ run(char* addr) {
   /* get SID */
   SID = Get_SID(buffer);
 
-  printf("SID: %s\n", SID);
+  // printf("SID: %s\n", SID);
 
-  char *free_list[] = { buffer, SID, Null };
+  char *free_list[] = { buffer, SID, HOST, Null };
 
   if(SID == Null) {
     free_bylist((void*) free_list);
@@ -109,23 +113,26 @@ run(char* addr) {
   }
 
   if (c_flags[1] == 1)
-    printf("Wifi: %s\n", Get_Wifiname(addr, SID));
+    printf("Wifi: %s\n", Get_Wifiname(SID));
 
   if (c_flags[0] == 1)
-    printf("Mac: %s\n", Get_Mac(addr, SID));
+    printf("Mac: %s\n", Get_Mac(SID));
+
+  printf("Host: %s\n", HOST);
+  putchar('\n');
 
   free_bylist((void*) free_list);
 
   return 0;
 }
 
-/* Set sockaddr_in struct datas */ 
+/* Set sockHOST_in struct datas */ 
 int
-set_Addr(char *host) {
+set_Addr() {
   dest.sin_family = AF_INET;
   dest.sin_port = htons(80);
 
-  if ((dest.sin_addr.s_addr = inet_addr(host)) == -1) {
+  if ((dest.sin_addr.s_addr = inet_addr(HOST)) == -1) {
     perror("Send_request: invalid host.");
     return -1;
   }
@@ -228,12 +235,12 @@ Get_SID(char *msg)
 
 /* Get wireless name */
 char*
-Get_Wifiname(char *addr, char *SID)
+Get_Wifiname(char *SID)
 {
   char _req[1024];
 
   memset(_req, 0x0, 1024);
-  sprintf(_req, REQ_GET, REQ_WIFI_NAME, addr, addr, REQ_WIFI_NAME, SID);
+  sprintf(_req, REQ_GET, REQ_WIFI_NAME, HOST, HOST, REQ_WIFI_NAME, SID);
   
   char *resp = Send_request(_req);
 
@@ -251,20 +258,20 @@ Get_Wifiname(char *addr, char *SID)
   return token;
 }
 
-/* Get mac address */
+/* Get mac HOSTess */
 char*
-Get_Mac(char *addr, char *SID)
+Get_Mac(char *SID)
 {
-  char _req[1024];
+  char _req[1024], *token;
 
   memset(_req, 0x0, 1024);
-  sprintf(_req, REQ_GET, REQ_MAC, addr, addr, "start.ghtml", SID);
-  
+  sprintf(_req, REQ_GET, REQ_MAC, HOST, HOST, "start.ghtml", SID);
+
   char *resp = Send_request(_req);
 
   if (resp == Null) return Null;
 
-  char *token = strstr(resp, "TextPPPWorkIFMac1");
+  token = strstr(resp, "TextPPPWorkIFMac");
   token = strstr(token, "value");
   token = Split(token, '=', 32);
 
@@ -288,6 +295,7 @@ Send_request(char *msg) {
   rc = connect(sockfd, (struct sockaddr*)&dest, sizeof(dest));
 
   if (rc == -1) {
+    close(sockfd);
     perror("Send_request: connect fail.\n");
     return Null;
   }
@@ -295,6 +303,7 @@ Send_request(char *msg) {
   rc = send(sockfd, msg, MSG_MX_SIZE, 0);
 
   if (rc <= 0) {
+    close(sockfd);
     perror("Send_request: send fail.\n");
     return Null;
   }
@@ -308,19 +317,20 @@ Send_request(char *msg) {
   }
 
   free(buffer_lines);
+  close(sockfd);
 
   return buffer;
 }
 
 /* Make login request */
 char*
-Login_request(char *addr) {
+Login_request() {
   char *buffer, request[3][1024];
 
   for(int i=0; i < 3; i++)
     memset(request[i], 0x0, 1024);
 
-  sprintf(request[1], REQ_LOGIN, addr, addr, addr);
+  sprintf(request[1], REQ_LOGIN, HOST, HOST, HOST);
 
   buffer = Send_request(request[1]);
 
@@ -356,7 +366,7 @@ usage(char *binary) {
   printf(
     "run:\n%s <host> -<flags>\n\n"
     "( getters ) flags:\n"
-    "M : router mac address.\n"
+    "M : router mac HOSTess.\n"
     "N : wireless name.\n"
     , binary
   );
@@ -364,9 +374,9 @@ usage(char *binary) {
 
 void
 Get_flags(char *s_flags) {
-  for (int i=0; i < 3; i++)
+  for (int i=0; i < 2; i++)
   {
-    for (int j=0; j < 3; j++)
+    for (int j=0; j < 2; j++)
     {
       if (s_flags[i] == flags[j])
       {  
@@ -375,20 +385,10 @@ Get_flags(char *s_flags) {
 
         if (s_flags[i] == 'N' )
           c_flags[1] = 1;
-
-        if (s_flags[i] == 'P' )
-          c_flags[2] = 1;
       }
     }
   }
 }
-
-/*
-
-['M', 'N', 'P']
-['M', 'N', 'O']
-
-*/
 
 int
 main(int argc, char **argv) {
@@ -401,3 +401,4 @@ main(int argc, char **argv) {
 
   run(argv[1]);
 }
+
